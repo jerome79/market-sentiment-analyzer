@@ -2,6 +2,7 @@ import os
 import io
 import sys
 from pathlib import Path
+import time
 
 import pandas as pd
 import streamlit as st
@@ -109,6 +110,22 @@ def show_debug_sidebar():
     st.write("SECTOR_MAP_CSV:", os.getenv("SECTOR_MAP_CSV", "(unset)"))
     st.write("SENTIMENT_MODEL:", os.getenv("SENTIMENT_MODEL", "(unset)"))
     st.write("Python:", sys.version.split()[0])
+    st.write("Metrics:", st.session_state.get("metrics", {}))
+
+
+def _t():
+    """
+       Context manager for timing code execution in milliseconds.
+
+       Usage:
+           with _t() as timer:
+               # code block
+           print(timer.dt)  # elapsed time in ms
+    """
+    class T:
+        def __enter__(self): self.s=time.perf_counter(); return self
+        def __exit__(self,*_): self.dt=(time.perf_counter()-self.s)*1000  # ms
+    return T()
 
 # -------------------- UI --------------------
 

@@ -23,7 +23,17 @@ class BaselineVader:
         sentiments = model.predict(["Stocks rally", "Market crashes"])
     """
     def __init__(self): self.v = SentimentIntensityAnalyzer()
-    def predict(self, texts):  # returns -1/0/1
+    def predict(self, texts):
+        """
+                Predicts sentiment scores for a list of texts.
+
+                Args:
+                    texts (List[str]): List of input texts.
+
+                Returns:
+                    List[int]: List of sentiment scores (1 for positive, -1 for negative, 0 for neutral).
+                """
+        # returns -1/0/1
         out = []
         for t in texts:
             vs = self.v.polarity_scores(t or "")

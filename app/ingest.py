@@ -1,3 +1,7 @@
+"""
+Module for ingesting and normalizing financial news CSV data.
+Handles loading data from folders, merging sector information, and writing to Parquet.
+"""
 import os, glob, pandas as pd
 from dotenv import load_dotenv
 from pathlib import Path
@@ -7,15 +11,17 @@ SCHEMA = ["date","ticker","source","headline","text"]
 
 def _resolve_dir(csv_dir: str | None) -> Path:
     """
-    Resolves the CSV directory path to an absolute path.
+    Resolve a CSV directory to an absolute path, using the repo root as base if necessary.
 
-    Args:
-        csv_dir (str | None): The directory containing CSV files. If None, uses the NEWS_CSV_DIR environment variable or defaults to 'data'.
+    Parameters:
+        csv_dir (str | None): Directory containing CSV files. If None, uses NEWS_CSV_DIR env variable or defaults to 'data'.
 
     Returns:
-        Path: Absolute path to the CSV directory, relative to the repository root if needed.
-    """
+        Path: Absolute path to directory.
 
+    Example:
+        If csv_dir is relative, it is resolved against the repo root.
+    """
     repo_root = Path(__file__).resolve().parents[1]
     # env or default
     raw = csv_dir or os.getenv("NEWS_CSV_DIR", "data")
@@ -27,13 +33,20 @@ def _resolve_dir(csv_dir: str | None) -> Path:
 
 def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
     """
-    Loads all CSV files from the specified directory into a single DataFrame.
+    Load and concatenate all CSV files in a directory into a single DataFrame.
 
-    Args:
-        csv_dir (str | None): Path to the directory containing CSV files. If None, uses the NEWS_CSV_DIR environment variable or defaults to 'data'.
+    Parameters:
+        csv_dir (str | None): Directory path. Uses NEWS_CSV_DIR environment variable if not provided.
 
     Returns:
-        pd.DataFrame: Combined DataFrame containing all rows from the CSV files.
+        pd.DataFrame: DataFrame containing all rows from all CSV files.
+
+    Raises:
+        FileNotFoundError: If no CSV files found.
+        ValueError: If no headline/title/text column found in a file.
+
+    Example:
+        load_csv_dir('data/news')
     """
     rows = []
     dir_path = _resolve_dir(csv_dir)
@@ -74,13 +87,21 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
 
 def normalize_and_save(df: pd.DataFrame, out_path: str):
     """
-       Normalizes the input DataFrame (e.g., date formatting, sector merge) and saves it to Parquet.
+    Normalize financial news DataFrame and save to Parquet.
 
-       Args:
-           df (pd.DataFrame): Input data.
-           out_path (str): Output path for Parquet file.
-       Returns:
-           pd.DataFrame: Normalized DataFrame.
+    - Converts date to standard format.
+    - Merges sector information from sector map, if available.
+    - Writes DataFrame to Parquet.
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame with columns ['date', 'ticker', 'headline', 'text', ...].
+        out_path (str): Output path for Parquet file.
+
+    Returns:
+        pd.DataFrame: Normalized DataFrame.
+
+    Example:
+        normalize_and_save(df, 'data/news.parquet')
     """
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"]).dt.date

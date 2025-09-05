@@ -1,3 +1,7 @@
+"""
+Plotting utilities for market sentiment visualizations.
+Includes functions for plotting sentiment trends by date, ticker, and sector.
+"""
 import pandas as pd
 import matplotlib.pyplot as plt
 

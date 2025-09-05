@@ -31,6 +31,20 @@ def _choose_model(model_choice: str, hf_id: str):
     return (_get_hf(hf_id) if model_choice != "VADER (fast)" else BaselineVader())
 
 def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
+    """
+        Apply sentiment labeling to a DataFrame using the provided model.
+
+        - Infers 'text' column if missing.
+        - Uses model's predict or predict_with_scores for sentiment and confidence.
+        - Adds 'sentiment' and optionally 'confidence' columns.
+
+        Parameters:
+            df (pd.DataFrame): DataFrame containing at least a text-like column.
+            model: Model with .predict or .predict_with_scores method.
+
+        Returns:
+            pd.DataFrame: Labeled DataFrame with 'sentiment' and optionally 'confidence'.
+    """
     out = df.copy()
     if "text" not in out.columns:
         # try to infer a text-like column
@@ -48,7 +62,16 @@ def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
 
 def resolve_data_dir(env_var: str = "NEWS_CSV_DIR") -> Path:
     """
-    Resolve CHROMA_PERSIST_DIR to an absolute path.
+    Resolve the data directory from an environment variable to an absolute Path.
+
+    Parameters:
+        env_var (str): Environment variable name for the directory (default: "NEWS_CSV_DIR").
+
+    Returns:
+        Path: Absolute path to the directory.
+
+    Example:
+        resolve_data_dir("NEWS_CSV_DIR")
     """
     env_dir = os.getenv(env_var) or "data"
     p = Path(env_dir)

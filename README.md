@@ -32,6 +32,19 @@ pip install -r requirements.txt
 
 ## License
 MIT
+## Example Input CSV
 
-## Screenshots
-![Dashboard demo](screenshots/dashboard.png)
+```csv
+date,ticker,headline,text
+2025-01-01,AAPL,Apple rises,Apple stock surges after earnings
+2025-01-01,TSLA,Tesla falls,Tesla shares dip after recall news
+```
+
+## Example Labeled Output
+
+```csv
+date,ticker,headline,text,sentiment,confidence
+2025-01-01,AAPL,Apple rises,Apple stock surges after earnings,1,0.95
+2025-01-01,TSLA,Tesla falls,Tesla shares dip after recall news,-1,0.90
+```
+...

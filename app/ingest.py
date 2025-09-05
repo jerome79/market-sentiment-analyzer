@@ -60,6 +60,12 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
     for fp in paths:
         try:
             df = pd.read_csv(fp)
+        except MemoryError:
+            # large file fallback
+            chunks = []
+            for ch in pd.read_csv(fp, chunksize=100_000):
+                chunks.append(ch)
+            df = pd.concat(chunks, ignore_index=True)
         except Exception as e:
             print(f"[ingest] skip {fp}: {e}")
             continue

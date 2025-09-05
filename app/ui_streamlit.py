@@ -3,6 +3,7 @@ import io
 import sys
 from pathlib import Path
 import time
+import hashlib
 
 import pandas as pd
 import streamlit as st
@@ -21,6 +22,31 @@ st.set_page_config(page_title="Market Sentiment Analyzer", layout="wide")
 st.set_option("client.showErrorDetails", True)
 
 # -------------------- Helpers --------------------
+@st.cache_data(show_spinner=False)
+def load_labeled_parquet(path="data/news_labeled.parquet"):
+    if not os.path.exists(path): return None
+    df = pd.read_parquet(path)
+    if "ticker" in df: df["ticker"] = df["ticker"].astype("category")
+    if "sector" in df: df["sector"] = df["sector"].astype("category")
+    return df
+
+@st.cache_data(show_spinner=False)
+def trend_market(df: pd.DataFrame):
+    return (df.groupby("date", as_index=False)["sentiment"]
+              .mean().rename(columns={"sentiment":"avg_sentiment"}))
+
+@st.cache_data(show_spinner=False)
+def trend_ticker(df: pd.DataFrame, ticker: str):
+    sdf = df[df["ticker"] == ticker]
+    return (sdf.groupby("date", as_index=False)["sentiment"]
+              .mean().rename(columns={"sentiment":"avg_sentiment"}))
+
+@st.cache_data(show_spinner=False)
+def trend_sector(df: pd.DataFrame, sector: str):
+    sdf = df[df.get("sector").eq(sector)]
+    return (sdf.groupby("date", as_index=False)["sentiment"]
+              .mean().rename(columns={"sentiment":"avg_sentiment"}))
+
 @st.cache_resource
 def _get_hf(model_id: str):
     """
@@ -50,6 +76,18 @@ def _choose_model(model_choice: str, hf_id: str):
     from app.sentiment import BaselineVader
     return (_get_hf(hf_id) if model_choice != "VADER (fast)" else BaselineVader())
 
+def _hash(s: str) -> str:
+    """
+        Generate an MD5 hash for the given string.
+
+        Parameters:
+            s (str): Input string to hash.
+
+        Returns:
+            str: MD5 hexadecimal digest of the input string.
+    """
+    return hashlib.md5(s.encode("utf-8","ignore")).hexdigest()
+
 def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
     """
         Apply sentiment labeling to a DataFrame using the provided model.
@@ -72,15 +110,21 @@ def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
         if not cand:
             raise ValueError("No text-like column found in input DataFrame.")
         out["text"] = out[cand[0]].astype(str) if cand else ""
-    texts = out["text"].fillna("").astype(str).tolist()
+    out["text"] = out["text"].fillna("").astype(str)
+    out["__h"] = out["text"].map(_hash)
+
+    uniq = out.drop_duplicates("__h", keep="first")[["__h", "text"]].copy()
+    tx = uniq["text"].tolist()
     # try confidences if available
-    if hasattr(model, "predict_with_scores"):
-        labels, conf = model.predict_with_scores(texts)
-        out["sentiment"] = labels
-        out["confidence"] = conf
-    else:
-        out["sentiment"] = model.predict(texts)
+    try:
+        labels, conf = model.predict_with_scores(tx)
+        uniq["sentiment"], uniq["confidence"] = labels, conf
+    except Exception:
+        uniq["sentiment"] = model.predict(tx)
+    out = out.merge(uniq.drop(columns=["text"]), on="__h", how="left").drop(columns="__h")
     return out
+
+
 
 def resolve_data_dir(env_var: str = "NEWS_CSV_DIR") -> Path:
     """
@@ -110,7 +154,6 @@ def show_debug_sidebar():
     st.write("SECTOR_MAP_CSV:", os.getenv("SECTOR_MAP_CSV", "(unset)"))
     st.write("SENTIMENT_MODEL:", os.getenv("SENTIMENT_MODEL", "(unset)"))
     st.write("Python:", sys.version.split()[0])
-    st.write("Metrics:", st.session_state.get("metrics", {}))
 
 
 def _t():
@@ -239,37 +282,47 @@ with tab_dashboard:
     from app.plots import  sentiment_trend_by_date, sentiment_trend_by_ticker_date, sentiment_trend_by_sector_date
     try:
         if os.path.exists("data/news_labeled.parquet"):
-            df = pd.read_parquet("data/news_labeled.parquet")
-            if "sector" not in df.columns:
-                df["sector"] = None
+            df = load_labeled_parquet()
+            if df is None or df.empty:
+                st.info("No labeled data yet. Go to Ingest/Label first.")
+            else:
+                # --- Date range filter ---
+                min_d, max_d = df["date"].min(), df["date"].max()
+                dsel = st.date_input("Date range", (min_d, max_d), key="date_range")
+                if isinstance(dsel, tuple) and len(dsel) == 2:
+                    df = df[(df["date"] >= dsel[0]) & (df["date"] <= dsel[1])]
 
-            group_mode = st.selectbox(
-                "Aggregate by",
-                ["Market (Date)", "Ticker + Date", "Sector + Date"],
-                index=0,
-                key="group_mode",
-            )
+            group_mode = st.radio("Group by:", ["Market (Date)", "Ticker + Date", "Sector + Date"],
+                                  key="group_mode")
+
 
             if group_mode == "Market (Date)":
-                st.pyplot(sentiment_trend_by_date(df))
-
+                tr = trend_market(df)
+                st.line_chart(tr.set_index("date")["avg_sentiment"])
             elif group_mode == "Ticker + Date":
                 tickers = sorted([t for t in df["ticker"].dropna().unique().tolist() if t])
-                sel_t = st.selectbox("Ticker", tickers or ["(none)"], key="ticker_select")
-                if tickers:
-                    st.pyplot(sentiment_trend_by_ticker_date(df, sel_t))
+                sel_t = st.selectbox("Select ticker", tickers, key="sel_t")
+                if sel_t:
+                    tr = trend_ticker(df, sel_t)
+                    st.line_chart(tr.set_index("date")["avg_sentiment"])
                 else:
-                    st.info("No tickers found in labeled data.")
+                    st.warning("No ticker available in dataset.")
 
             else:  # Sector + Date
-                sectors = sorted([s for s in df["sector"].dropna().unique().tolist() if s])
-                sel_s = st.selectbox("Sector", sectors or ["(none)"], key="sector_select")
-                if sectors:
-                    st.pyplot(sentiment_trend_by_sector_date(df, sel_s))
+                if "sector" not in df:
+                    st.warning("No sector column available. Please ensure sector_map.csv was applied during ingest.")
                 else:
-                    st.info("No sectors found. Provide a sector map CSV in .env (SECTOR_MAP_CSV).")
+                    sectors = sorted([s for s in df["sector"].dropna().unique().tolist() if s])
+                    sel_s = st.selectbox("Select sector", sectors, key="sel_s")
+                    if sel_s:
+                        tr = trend_sector(df, sel_s)
+                        st.line_chart(tr.set_index("date")["avg_sentiment"])
+                    else:
+                        st.warning("No sector available in dataset.")
 
             # Export current labeled dataset
+            cap = st.slider("Max rows to display", 100, 5000, 1000, 100, key="row_cap")
+            st.dataframe(df.head(cap))
             buf = io.StringIO()
             df.to_csv(buf, index=False)
             st.download_button("⬇️ Export labeled CSV", buf.getvalue(), "news_labeled.csv", key="export_btn")

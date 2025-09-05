@@ -211,7 +211,7 @@ with tab_ingest:
 # ===== Dashboard =====
 with tab_dashboard:
     st.subheader("Sentiment Trends")
-    from app.plots import sentiment_trend, sentiment_trend_by_date, sentiment_trend_by_ticker_date, sentiment_trend_by_sector_date
+    from app.plots import  sentiment_trend_by_date, sentiment_trend_by_ticker_date, sentiment_trend_by_sector_date
     try:
         if os.path.exists("data/news_labeled.parquet"):
             df = pd.read_parquet("data/news_labeled.parquet")

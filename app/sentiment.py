@@ -11,7 +11,17 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
 class BaselineVader:
-    """VADER-based sentiment analyzer for financial headlines/text."""
+    """
+    VADER-based sentiment analyzer for financial headlines/text.
+
+    Methods:
+        predict(texts: list[str]) -> list[int]:
+            Assigns sentiment scores (-1 negative, 0 neutral, 1 positive).
+
+    Example:
+        model = BaselineVader()
+        sentiments = model.predict(["Stocks rally", "Market crashes"])
+    """
     def __init__(self): self.v = SentimentIntensityAnalyzer()
     def predict(self, texts):  # returns -1/0/1
         out = []

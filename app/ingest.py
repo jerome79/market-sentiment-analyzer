@@ -85,7 +85,7 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
     print(f"[ingest] loaded rows: {len(out)}")
     return out
 
-def normalize_and_save(df: pd.DataFrame, out_path: str):
+def normalize_and_save(df: pd.DataFrame, out_path: str)-> pd.DataFrame:
     """
     Normalize financial news DataFrame and save to Parquet.
 

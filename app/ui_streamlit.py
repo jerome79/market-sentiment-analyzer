@@ -166,16 +166,17 @@ with tab_ingest:
                     except Exception as e:
                         st.warning(f"Error reading {getattr(f, 'name', '<upload>')}: {e}")
                 if not frames:
-                    st.error("No valid CSV uploads were read. Please check file format and encoding.")
+                    st.error("No valid CSV uploads detected. Please verify your file format (CSV), encoding (UTF-8 recommended), and column headers.")
                     st.stop()
                 raw_all = pd.concat(frames, ignore_index=True)
 
                 # best-effort column mapping
                 cols = [c.lower() for c in raw_all.columns]
-                # text column
-                text_idx = next((i for i, c in enumerate(cols) if ("headline" in c or "title" in c or "text" in c)),
-                                None)
-                if text_idx is None:
+
+                # Find the first column likely to contain text features (headline/title/text)
+                text_col_idx = next((i for i, c in enumerate(cols) if ("headline" in c or "title" in c or "text" in c)),
+                                    None)
+                if text_col_idx is None:
                     st.error("No text-like column found (need headline/title/text).")
                     st.stop()
                 # optional date/ticker
@@ -187,8 +188,8 @@ with tab_ingest:
                                            errors="coerce").dt.date if date_idx is not None else None,
                     "ticker": raw_all.iloc[:, tick_idx] if tick_idx is not None else None,
                     "source": "upload",
-                    "headline": raw_all.iloc[:, text_idx],
-                    "text": raw_all.iloc[:, text_idx]
+                    "headline": raw_all.iloc[:, text_col_idx],
+                    "text": raw_all.iloc[:, text_col_idx]
                 })
             else:
                 raw = load_csv_dir(folder)

@@ -68,6 +68,8 @@ def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
     if "text" not in out.columns:
         # try to infer a text-like column
         cand = [c for c in out.columns if any(k in c.lower() for k in ("headline", "title", "text"))]
+        if not cand:
+            raise ValueError("No text-like column found in input DataFrame.")
         out["text"] = out[cand[0]].astype(str) if cand else ""
     texts = out["text"].fillna("").astype(str).tolist()
     # try confidences if available
@@ -98,10 +100,8 @@ def resolve_data_dir(env_var: str = "NEWS_CSV_DIR") -> Path:
         p = (ROOT / p)
     return p.resolve()
 
-# -------------------- UI --------------------
-
-# -------------------- Sidebar debug --------------------
-with st.sidebar:
+def show_debug_sidebar():
+    """Show debug info in sidebar."""
     st.header("🔧 Debug")
     st.caption("Use this to verify inputs and code path.")
     st.write("CWD:", os.getcwd())
@@ -109,6 +109,13 @@ with st.sidebar:
     st.write("SECTOR_MAP_CSV:", os.getenv("SECTOR_MAP_CSV", "(unset)"))
     st.write("SENTIMENT_MODEL:", os.getenv("SENTIMENT_MODEL", "(unset)"))
     st.write("Python:", sys.version.split()[0])
+
+# -------------------- UI --------------------
+
+# -------------------- Sidebar debug --------------------
+with st.sidebar:
+    show_debug_sidebar()
+
 
 st.title("📈 Market Sentiment Analyzer")
 
@@ -157,9 +164,9 @@ with tab_ingest:
                     try:
                         frames.append(pd.read_csv(f))
                     except Exception as e:
-                        st.warning(f"Skipping {getattr(f, 'name', '<upload>')}: {e}")
+                        st.warning(f"Error reading {getattr(f, 'name', '<upload>')}: {e}")
                 if not frames:
-                    st.error("No valid CSV uploads were read.")
+                    st.error("No valid CSV uploads were read. Please check file format and encoding.")
                     st.stop()
                 raw_all = pd.concat(frames, ignore_index=True)
 

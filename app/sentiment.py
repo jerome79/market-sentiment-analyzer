@@ -1,9 +1,17 @@
-import os, pandas as pd
+"""
+Sentiment model wrappers for financial news analysis.
+
+Classes:
+    BaselineVader: Wrapper for VADER sentiment analysis.
+    HFClassifier: Wrapper for HuggingFace transformer-based models.
+"""
+import os
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
 class BaselineVader:
+    """VADER-based sentiment analyzer for financial headlines/text."""
     def __init__(self): self.v = SentimentIntensityAnalyzer()
     def predict(self, texts):  # returns -1/0/1
         out = []
@@ -14,6 +22,7 @@ class BaselineVader:
         return out
 
 class HFClassifier:
+    """HuggingFace transformer-based sentiment classifier."""
     def __init__(self, model_id=None):
         self.model_id = model_id or os.getenv("SENTIMENT_MODEL","cardiffnlp/twitter-roberta-base-sentiment-latest")
         self.tok = AutoTokenizer.from_pretrained(self.model_id)

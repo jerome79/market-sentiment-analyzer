@@ -6,8 +6,16 @@ load_dotenv()
 SCHEMA = ["date","ticker","source","headline","text"]
 
 def _resolve_dir(csv_dir: str | None) -> Path:
-    """Resolve CSV folder to an absolute path, relative to repo root if needed."""
-    # repo root = project folder containing this file's parent
+    """
+    Resolves the CSV directory path to an absolute path.
+
+    Args:
+        csv_dir (str | None): The directory containing CSV files. If None, uses the NEWS_CSV_DIR environment variable or defaults to 'data'.
+
+    Returns:
+        Path: Absolute path to the CSV directory, relative to the repository root if needed.
+    """
+
     repo_root = Path(__file__).resolve().parents[1]
     # env or default
     raw = csv_dir or os.getenv("NEWS_CSV_DIR", "data")
@@ -18,6 +26,15 @@ def _resolve_dir(csv_dir: str | None) -> Path:
 
 
 def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
+    """
+    Loads all CSV files from the specified directory into a single DataFrame.
+
+    Args:
+        csv_dir (str | None): Path to the directory containing CSV files. If None, uses the NEWS_CSV_DIR environment variable or defaults to 'data'.
+
+    Returns:
+        pd.DataFrame: Combined DataFrame containing all rows from the CSV files.
+    """
     rows = []
     dir_path = _resolve_dir(csv_dir)
     pattern = str(dir_path / "*.csv")
@@ -56,6 +73,15 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
     return out
 
 def normalize_and_save(df: pd.DataFrame, out_path: str):
+    """
+       Normalizes the input DataFrame (e.g., date formatting, sector merge) and saves it to Parquet.
+
+       Args:
+           df (pd.DataFrame): Input data.
+           out_path (str): Output path for Parquet file.
+       Returns:
+           pd.DataFrame: Normalized DataFrame.
+    """
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"]).dt.date
 

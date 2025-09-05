@@ -1,16 +1,37 @@
-# market-sentiment-analyzer
-Market Sentiment Analyzer for analyst : 
-Why: Traders/PMs need early read on market mood → sentiment often leads price. 
-What: Analyzer that ingests financial news/headlines, labels sentiment, and tracks over time.
-For who: Analysts, PMs, quants.  Value: Faster insight into market tone → potential alpha, risk alerts.
+# Market Sentiment Analyzer
 
-# Quickstart
-(clone → cp .env.example .env → pip install -r requirements.txt → upload CSV → view trend).
+## Overview
+Analyze financial news/headlines to label sentiment and track trends for alpha generation and risk alerts.
 
-# Models: 
-VADER vs HF; trade-offs.
+## Features
+- Ingest CSV data
+- Label sentiment using VADER/FinBERT/RoBERTa
+- Dashboard for market/ticker/sector sentiment
 
-# Limitations & next steps 
-(drift, sarcasm, domain terms).
+## Installation
+```bash
+git clone https://github.com/jerome79/market-sentiment-analyzer.git
+cd market-sentiment-analyzer
+cp .env.example .env
+pip install -r requirements.txt
+```
 
-# Screenshots/GIF.
+## Usage
+1. Upload CSVs or specify a folder
+2. Select sentiment model
+3. View dashboard for insights
+
+## Models
+- VADER (fast)
+- RoBERTa (CardiffNLP)
+- FinBERT (ProsusAI, Tone)
+
+## Limitations & Roadmap
+- Handles drift, sarcasm, domain terms (future improvements)
+- See `issues/` for next steps
+
+## License
+MIT
+
+## Screenshots
+![Dashboard demo](screenshots/dashboard.png)

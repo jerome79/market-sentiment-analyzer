@@ -61,15 +61,10 @@ def resolve_data_dir(env_var: str = "NEWS_CSV_DIR") -> Path:
 # -------------------- Sidebar debug --------------------
 with st.sidebar:
     st.header("🔧 Debug")
-    st.write("checkpoint: after Debug")
     st.caption("Use this to verify inputs and code path.")
-    st.write("checkpoint: after input")
     st.write("CWD:", os.getcwd())
-    st.write("checkpoint: after CWD")
     st.write("NEWS_CSV_DIR:", os.getenv("NEWS_CSV_DIR", "(unset)"))
-    st.write("checkpoint after news")
     st.write("SECTOR_MAP_CSV:", os.getenv("SECTOR_MAP_CSV", "(unset)"))
-    st.write("checkpoint sector")
     st.write("SENTIMENT_MODEL:", os.getenv("SENTIMENT_MODEL", "(unset)"))
     st.write("Python:", sys.version.split()[0])
 

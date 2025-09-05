@@ -1,0 +1,12 @@
+ticker,name,sector
+AAPL,Apple Inc.,Information Technology
+MSFT,Microsoft Corp.,Information Technology
+NVDA,NVIDIA Corp.,Information Technology
+TSLA,Tesla Inc.,Consumer Discretionary
+AMZN,Amazon.com Inc.,Consumer Discretionary
+GOOGL,Alphabet Inc.,Communication Services
+META,Meta Platforms Inc.,Communication Services
+JPM,JP Morgan Chase & Co.,Financials
+GS,Goldman Sachs Group Inc.,Financials
+BTC-USD,Bitcoin,Cryptocurrency
+ETH-USD,Ethereum,Cryptocurrency

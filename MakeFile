@@ -1,0 +1,3 @@
+ui: streamlit run app/ui_streamlit.py
+ingest: python app/ingest.py
+test: pytest -q

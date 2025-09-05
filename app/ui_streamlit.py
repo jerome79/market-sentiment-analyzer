@@ -22,11 +22,30 @@ st.set_option("client.showErrorDetails", True)
 # -------------------- Helpers --------------------
 @st.cache_resource
 def _get_hf(model_id: str):
+    """
+        Lazily load and cache a HuggingFace sentiment model by model ID.
+
+        Parameters:
+            model_id (str): HuggingFace model identifier.
+
+        Returns:
+            HFClassifier: Instantiated classifier.
+    """
     from app.sentiment import HFClassifier
     # cache only the HF model (VADER is tiny)
     return HFClassifier(model_id)
 
 def _choose_model(model_choice: str, hf_id: str):
+    """
+        Select the sentiment model based on user choice.
+
+        Parameters:
+            model_choice (str): Model name selected by user.
+            hf_id (str): HuggingFace model ID for non-VADER models.
+
+        Returns:
+            Model instance for sentiment prediction.
+    """
     from app.sentiment import BaselineVader
     return (_get_hf(hf_id) if model_choice != "VADER (fast)" else BaselineVader())
 

@@ -1,262 +1,548 @@
-import os
+"""
+Streamlit user interface for the Market Sentiment Analyzer.
+
+This module provides a web-based dashboard for ingesting financial news data,
+applying sentiment analysis, and visualizing sentiment trends. The interface
+includes two main tabs: data ingestion/labeling and sentiment analytics dashboard.
+
+Main components:
+- File upload and CSV folder ingestion
+- Model selection for sentiment analysis (VADER, RoBERTa, FinBERT)
+- Interactive sentiment trend visualizations
+- Data export functionality
+
+Usage:
+    streamlit run app/ui_streamlit.py
+"""
+
 import io
+import os
 import sys
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
-# -------- repo-root import fix --------
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+# Repository root path setup for module imports
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from app.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
+from app.ingest import load_csv_dir, normalize_and_save
 
-# -------------------- App config --------------------
+
+# Application configuration
 load_dotenv()
 st.set_page_config(page_title="Market Sentiment Analyzer", layout="wide")
 st.set_option("client.showErrorDetails", True)
 
-# -------------------- Helpers --------------------
+
 @st.cache_resource
-def _get_hf(model_id: str):
+def _get_hf_model(model_id: str) -> Any:
     """
-        Lazily load and cache a HuggingFace sentiment model by model ID.
+    Lazily load and cache a HuggingFace sentiment model.
 
-        Parameters:
-            model_id (str): HuggingFace model identifier.
+    Uses Streamlit's caching to avoid reloading models on every interaction.
+    This significantly improves performance for transformer-based models.
 
-        Returns:
-            HFClassifier: Instantiated classifier.
-    """
-    from app.sentiment import HFClassifier
-    # cache only the HF model (VADER is tiny)
-    return HFClassifier(model_id)
-
-def _choose_model(model_choice: str, hf_id: str):
-    """
-        Select the sentiment model based on user choice.
-
-        Parameters:
-            model_choice (str): Model name selected by user.
-            hf_id (str): HuggingFace model ID for non-VADER models.
-
-        Returns:
-            Model instance for sentiment prediction.
-    """
-    from app.sentiment import BaselineVader
-    return (_get_hf(hf_id) if model_choice != "VADER (fast)" else BaselineVader())
-
-def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
-    """
-        Apply sentiment labeling to a DataFrame using the provided model.
-
-        - Infers 'text' column if missing.
-        - Uses model's predict or predict_with_scores for sentiment and confidence.
-        - Adds 'sentiment' and optionally 'confidence' columns.
-
-        Parameters:
-            df (pd.DataFrame): DataFrame containing at least a text-like column.
-            model: Model with .predict or .predict_with_scores method.
-
-        Returns:
-            pd.DataFrame: Labeled DataFrame with 'sentiment' and optionally 'confidence'.
-    """
-    out = df.copy()
-    if "text" not in out.columns:
-        # try to infer a text-like column
-        cand = [c for c in out.columns if any(k in c.lower() for k in ("headline", "title", "text"))]
-        if not cand:
-            raise ValueError("No text-like column found in input DataFrame.")
-        out["text"] = out[cand[0]].astype(str) if cand else ""
-    texts = out["text"].fillna("").astype(str).tolist()
-    # try confidences if available
-    if hasattr(model, "predict_with_scores"):
-        labels, conf = model.predict_with_scores(texts)
-        out["sentiment"] = labels
-        out["confidence"] = conf
-    else:
-        out["sentiment"] = model.predict(texts)
-    return out
-
-def resolve_data_dir(env_var: str = "NEWS_CSV_DIR") -> Path:
-    """
-    Resolve the data directory from an environment variable to an absolute Path.
-
-    Parameters:
-        env_var (str): Environment variable name for the directory (default: "NEWS_CSV_DIR").
+    Args:
+        model_id: HuggingFace model identifier (e.g., 'ProsusAI/finbert').
 
     Returns:
-        Path: Absolute path to the directory.
+        Instantiated HFClassifier for sentiment prediction.
 
     Example:
-        resolve_data_dir("NEWS_CSV_DIR")
+        >>> model = _get_hf_model("ProsusAI/finbert")
+        >>> sentiments = model.predict(["Great earnings", "Market volatility"])
     """
-    env_dir = os.getenv(env_var) or "data"
-    p = Path(env_dir)
-    if not p.is_absolute():
-        p = (ROOT / p)
-    return p.resolve()
+    from app.sentiment import HFClassifier
 
-def show_debug_sidebar():
-    """Show debug info in sidebar."""
-    st.header("🔧 Debug")
-    st.caption("Use this to verify inputs and code path.")
-    st.write("CWD:", os.getcwd())
-    st.write("NEWS_CSV_DIR:", os.getenv("NEWS_CSV_DIR", "(unset)"))
-    st.write("SECTOR_MAP_CSV:", os.getenv("SECTOR_MAP_CSV", "(unset)"))
-    st.write("SENTIMENT_MODEL:", os.getenv("SENTIMENT_MODEL", "(unset)"))
-    st.write("Python:", sys.version.split()[0])
-
-# -------------------- UI --------------------
-
-# -------------------- Sidebar debug --------------------
-with st.sidebar:
-    show_debug_sidebar()
+    return HFClassifier(model_id)
 
 
+def _select_sentiment_model(model_choice: str, hf_model_id: str) -> Any:
+    """
+    Select and instantiate the appropriate sentiment model.
+
+    Args:
+        model_choice: User-selected model name from the UI dropdown.
+        hf_model_id: HuggingFace model ID for transformer-based models.
+
+    Returns:
+        Instantiated sentiment model with predict() method.
+
+    Example:
+        >>> model = _select_sentiment_model("VADER (fast)", "")
+        >>> model = _select_sentiment_model("FinBERT (ProsusAI)", "ProsusAI/finbert")
+    """
+    from app.sentiment import BaselineVader
+
+    if model_choice == "VADER (fast)":
+        return BaselineVader()
+    else:
+        return _get_hf_model(hf_model_id)
+
+
+def _apply_sentiment_labeling(
+    dataframe: pd.DataFrame, sentiment_model: Any
+) -> pd.DataFrame:
+    """
+    Apply sentiment analysis to a DataFrame containing text data.
+
+    This function handles text column detection, applies the sentiment model,
+    and adds sentiment scores (and confidence if available) to the DataFrame.
+
+    Args:
+        dataframe: Input DataFrame with text content.
+        sentiment_model: Model instance with predict() or predict_with_scores().
+
+    Returns:
+        DataFrame with added 'sentiment' and optionally 'confidence' columns.
+
+    Raises:
+        ValueError: If no text-like column is found in the DataFrame.
+
+    Example:
+        >>> df = pd.DataFrame({'headline': ['Good news', 'Bad news']})
+        >>> model = BaselineVader()
+        >>> labeled_df = _apply_sentiment_labeling(df, model)
+        >>> print(labeled_df['sentiment'].tolist())  # [1, -1]
+    """
+    # Create copy to avoid modifying original data
+    labeled_df = dataframe.copy()
+
+    # Auto-detect text column if not explicitly named 'text'
+    if "text" not in labeled_df.columns:
+        # Look for columns that likely contain text content
+        text_candidates = [
+            col
+            for col in labeled_df.columns
+            if any(keyword in col.lower() for keyword in ("headline", "title", "text"))
+        ]
+        if not text_candidates:
+            raise ValueError(
+                "No text-like column found in DataFrame. "
+                "Expected columns containing 'headline', 'title', or 'text'."
+            )
+        # Use the first candidate as the text column
+        labeled_df["text"] = labeled_df[text_candidates[0]].astype(str)
+
+    # Prepare text data for model input
+    text_content = labeled_df["text"].fillna("").astype(str).tolist()
+
+    # Apply sentiment analysis
+    if hasattr(sentiment_model, "predict_with_scores"):
+        # Model supports confidence scores
+        sentiment_labels, confidence_scores = sentiment_model.predict_with_scores(
+            text_content
+        )
+        labeled_df["sentiment"] = sentiment_labels
+        labeled_df["confidence"] = confidence_scores
+    else:
+        # Model only provides labels
+        labeled_df["sentiment"] = sentiment_model.predict(text_content)
+
+    return labeled_df
+
+
+def resolve_data_directory(env_variable: str = "NEWS_CSV_DIR") -> Path:
+    """
+    Resolve data directory path from environment variables.
+
+    Converts relative paths to absolute paths using the repository root,
+    and handles environment variable defaults gracefully.
+
+    Args:
+        env_variable: Environment variable name containing the directory path.
+
+    Returns:
+        Absolute Path object pointing to the resolved directory.
+
+    Example:
+        >>> data_dir = resolve_data_directory("NEWS_CSV_DIR")
+        >>> print(data_dir.exists())  # True if directory exists
+    """
+    # Get directory from environment or use default
+    directory_value = os.getenv(env_variable) or "data"
+    directory_path = Path(directory_value)
+
+    # Convert relative paths to absolute using repository root
+    if not directory_path.is_absolute():
+        directory_path = REPO_ROOT / directory_path
+
+    return directory_path.resolve()
+
+
+def show_debug_information() -> None:
+    """
+    Display debug information in the sidebar.
+
+    Shows current working directory, environment variables, and system info
+    to help users troubleshoot configuration issues.
+    """
+    st.header("🔧 Debug Information")
+    st.caption("System and environment details for troubleshooting.")
+
+    st.write("**Current Working Directory:**", os.getcwd())
+    st.write("**Python Version:**", sys.version.split()[0])
+
+    st.subheader("Environment Variables")
+    env_vars = ["NEWS_CSV_DIR", "SECTOR_MAP_CSV", "SENTIMENT_MODEL"]
+    for var in env_vars:
+        value = os.getenv(var, "(not set)")
+        st.write(f"**{var}:**", value)
+
+
+# Main UI Layout
 st.title("📈 Market Sentiment Analyzer")
 
-tab_ingest, tab_dashboard = st.tabs(["Ingest/Label", "Dashboard"])
+# Sidebar with debug information
+with st.sidebar:
+    show_debug_information()
 
-# ===== Ingest / Label =====
+# Main application tabs
+tab_ingest, tab_dashboard = st.tabs(["📁 Ingest & Label", "📊 Dashboard"])
+
+# Data Ingestion and Labeling Tab
 with tab_ingest:
-    st.subheader("Upload CSVs or use a folder")
+    st.subheader("Data Ingestion and Sentiment Labeling")
+    st.markdown(
+        "Upload CSV files or specify a folder containing news data. "
+        "The system will automatically detect relevant columns and apply "
+        "sentiment analysis using your selected model."
+    )
 
-    with st.form("ingest_form", clear_on_submit=False):
-        up = st.file_uploader(
-            "Upload CSV (headline/text + optional ticker/date)",
+    with st.form("data_ingestion_form", clear_on_submit=False):
+        # File upload option
+        uploaded_files = st.file_uploader(
+            "Upload CSV files (with headline/text + optional ticker/date columns)",
             type=["csv"],
             accept_multiple_files=True,
-            key="uploader",
+            key="csv_uploader",
+            help="Select one or more CSV files containing financial news data",
         )
-        folder = st.text_input(
-            "Or CSV folder (resolved from repo root if relative)",
-            value=resolve_data_dir("NEWS_CSV_DIR"),
-            key="folder_input",
+
+        # Folder input option
+        folder_path = st.text_input(
+            "Or specify a folder path containing CSV files",
+            value=str(resolve_data_directory("NEWS_CSV_DIR")),
+            key="folder_path_input",
+            help="Path will be resolved relative to repository root if not absolute",
         )
-        model_choice = st.selectbox(
-            "Sentiment model",
-            ["VADER (fast)", "RoBERTa (CardiffNLP)", "FinBERT (ProsusAI)", "FinBERT (Tone)"],
+
+        # Model selection
+        model_selection = st.selectbox(
+            "Choose sentiment analysis model",
+            [
+                "VADER (fast)",
+                "RoBERTa (CardiffNLP)",
+                "FinBERT (ProsusAI)",
+                "FinBERT (Tone)",
+            ],
             index=2,
-            key="model_choice",
+            key="model_selection",
+            help=(
+                "VADER is fastest, FinBERT models are most accurate for "
+                "financial text"
+            ),
         )
-        hf_id = {
+
+        # Map model choices to HuggingFace model IDs
+        model_id_mapping = {
             "RoBERTa (CardiffNLP)": "cardiffnlp/twitter-roberta-base-sentiment-latest",
             "FinBERT (ProsusAI)": "ProsusAI/finbert",
             "FinBERT (Tone)": "yiyanghkust/finbert-tone",
-        }.get(model_choice, os.getenv("SENTIMENT_MODEL", "ProsusAI/finbert"))
+        }
+        selected_model_id = model_id_mapping.get(
+            model_selection, os.getenv("SENTIMENT_MODEL", "ProsusAI/finbert")
+        )
 
-        submit = st.form_submit_button("Ingest & Label", use_container_width=True)
+        # Submit button
+        submit_button = st.form_submit_button(
+            "🚀 Process Data",
+            use_container_width=True,
+            help="Load data and apply sentiment analysis",
+        )
 
+    # Status information
+    file_count = 0 if not uploaded_files else len(uploaded_files)
     st.caption(
-        f"🔎 Debug — uploaded files: {0 if not up else len(up)} | folder: {folder} | model: {model_choice}"
+        f"📋 Status: {file_count} uploaded files | "
+        f"Folder: {folder_path} | Model: {model_selection}"
     )
 
-    if submit:
+    # Process data when form is submitted
+    if submit_button:
         try:
-            # 1) Load raw (either uploads or folder)
-            if up:
-                frames = []
-                for f in up:
-                    try:
-                        frames.append(pd.read_csv(f))
-                    except Exception as e:
-                        st.warning(f"Error reading {getattr(f, 'name', '<upload>')}: {e}")
-                if not frames:
-                    st.error("No valid CSV uploads detected. Please verify your file format (CSV), encoding (UTF-8 recommended), and column headers.")
-                    st.stop()
-                raw_all = pd.concat(frames, ignore_index=True)
+            with st.spinner("Processing data..."):
+                # Load data from either uploads or folder
+                if uploaded_files:
+                    st.info("Loading data from uploaded files...")
+                    data_frames = []
 
-                # best-effort column mapping
-                cols = [c.lower() for c in raw_all.columns]
+                    for uploaded_file in uploaded_files:
+                        try:
+                            current_df = pd.read_csv(uploaded_file)
+                            data_frames.append(current_df)
+                        except Exception as file_error:
+                            file_name = getattr(uploaded_file, "name", "unknown")
+                            st.warning(f"Could not read file {file_name}: {file_error}")
 
-                # Find the first column likely to contain text features (headline/title/text)
-                text_col_idx = next((i for i, c in enumerate(cols) if ("headline" in c or "title" in c or "text" in c)),
-                                    None)
-                if text_col_idx is None:
-                    st.error("No text-like column found (need headline/title/text).")
-                    st.stop()
-                # optional date/ticker
-                date_idx = next((i for i, c in enumerate(cols) if ("date" in c or "time" in c)), None)
-                tick_idx = next((i for i, c in enumerate(cols) if ("ticker" in c or "symbol" in c)), None)
+                    if not data_frames:
+                        st.error(
+                            "❌ No valid CSV files could be processed. "
+                            "Please verify file format, encoding (UTF-8 recommended), "
+                            "and column headers."
+                        )
+                        st.stop()
 
-                raw = pd.DataFrame({
-                    "date": pd.to_datetime(raw_all.iloc[:, date_idx],
-                                           errors="coerce").dt.date if date_idx is not None else None,
-                    "ticker": raw_all.iloc[:, tick_idx] if tick_idx is not None else None,
-                    "source": "upload",
-                    "headline": raw_all.iloc[:, text_col_idx],
-                    "text": raw_all.iloc[:, text_col_idx]
-                })
-            else:
-                raw = load_csv_dir(folder)
-                if raw.empty:
-                    st.error("No rows loaded from folder. Check path and CSV presence.")
-                    st.stop()
+                    # Combine all uploaded files
+                    combined_raw_data = pd.concat(data_frames, ignore_index=True)
 
-            # 2) Save normalized snapshot
-            os.makedirs("data", exist_ok=True)
-            raw = normalize_and_save(raw, "data/news.parquet")
+                    # Auto-detect columns
+                    column_names_lower = [
+                        col.lower() for col in combined_raw_data.columns
+                    ]
 
-            # 3) Model selection (lazy load HF)
-            model = _choose_model(model_choice, hf_id)
+                    # Find text content column
+                    text_column_index = next(
+                        (
+                            i
+                            for i, col in enumerate(column_names_lower)
+                            if any(
+                                keyword in col
+                                for keyword in ["headline", "title", "text"]
+                            )
+                        ),
+                        None,
+                    )
 
-            # 4) Label
-            labeled = _label_df(raw, model)
+                    if text_column_index is None:
+                        st.error(
+                            "❌ No text content column found. "
+                            "Please ensure your CSV has a column containing "
+                            "'headline', 'title', or 'text' in the name."
+                        )
+                        st.stop()
 
-            # 5) Persist labeled dataset
-            labeled.to_parquet("data/news_labeled.parquet", index=False)
-            st.success(f"Ingested & labeled: {len(labeled)} rows → data/news_labeled.parquet")
-            st.dataframe(labeled.head(20))
+                    # Find optional date and ticker columns
+                    date_column_index = next(
+                        (
+                            i
+                            for i, col in enumerate(column_names_lower)
+                            if any(keyword in col for keyword in ["date", "time"])
+                        ),
+                        None,
+                    )
 
-        except Exception as e:
-            st.exception(e)
+                    ticker_column_index = next(
+                        (
+                            i
+                            for i, col in enumerate(column_names_lower)
+                            if any(keyword in col for keyword in ["ticker", "symbol"])
+                        ),
+                        None,
+                    )
+
+                    # Create standardized DataFrame
+                    standardized_data = pd.DataFrame(
+                        {
+                            "date": (
+                                pd.to_datetime(
+                                    combined_raw_data.iloc[:, date_column_index],
+                                    errors="coerce",
+                                ).dt.date
+                                if date_column_index is not None
+                                else None
+                            ),
+                            "ticker": (
+                                combined_raw_data.iloc[:, ticker_column_index]
+                                if ticker_column_index is not None
+                                else None
+                            ),
+                            "source": "upload",
+                            "headline": combined_raw_data.iloc[:, text_column_index],
+                            "text": combined_raw_data.iloc[:, text_column_index],
+                        }
+                    )
+
+                else:
+                    # Load from folder
+                    st.info(f"Loading data from folder: {folder_path}")
+                    standardized_data = load_csv_dir(folder_path)
+
+                    if standardized_data.empty:
+                        st.error(
+                            "❌ No data loaded from the specified folder. "
+                            "Please check the path and ensure CSV files are present."
+                        )
+                        st.stop()
+
+                # Save normalized version
+                os.makedirs("data", exist_ok=True)
+                normalized_data = normalize_and_save(
+                    standardized_data, "data/news.parquet"
+                )
+
+                # Apply sentiment analysis
+                st.info(f"Applying sentiment analysis using {model_selection}...")
+                sentiment_model = _select_sentiment_model(
+                    model_selection, selected_model_id
+                )
+                labeled_data = _apply_sentiment_labeling(
+                    normalized_data, sentiment_model
+                )
+
+                # Save labeled dataset
+                labeled_data.to_parquet("data/news_labeled.parquet", index=False)
+
+                # Show success message and preview
+                st.success(
+                    f"✅ Successfully processed {len(labeled_data)} rows! "
+                    f"Data saved to: data/news_labeled.parquet"
+                )
+
+                st.subheader("Data Preview")
+                st.dataframe(
+                    labeled_data.head(20), use_container_width=True, height=400
+                )
+
+                # Show summary statistics
+                if "sentiment" in labeled_data.columns:
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        positive_count = (labeled_data["sentiment"] == 1).sum()
+                        st.metric("Positive Sentiment", positive_count)
+                    with col2:
+                        neutral_count = (labeled_data["sentiment"] == 0).sum()
+                        st.metric("Neutral Sentiment", neutral_count)
+                    with col3:
+                        negative_count = (labeled_data["sentiment"] == -1).sum()
+                        st.metric("Negative Sentiment", negative_count)
+
+        except Exception as processing_error:
+            st.error(f"❌ Error during processing: {processing_error}")
+            st.exception(processing_error)
             st.stop()
 
-# ===== Dashboard =====
+# Dashboard Tab
 with tab_dashboard:
-    st.subheader("Sentiment Trends")
-    from app.plots import  sentiment_trend_by_date, sentiment_trend_by_ticker_date, sentiment_trend_by_sector_date
-    try:
-        if os.path.exists("data/news_labeled.parquet"):
-            df = pd.read_parquet("data/news_labeled.parquet")
-            if "sector" not in df.columns:
-                df["sector"] = None
+    st.subheader("📊 Sentiment Analytics Dashboard")
+    st.markdown(
+        "Visualize sentiment trends across different dimensions. "
+        "Data must be processed in the Ingest & Label tab first."
+    )
 
-            group_mode = st.selectbox(
-                "Aggregate by",
+    try:
+        # Check if labeled data exists
+        labeled_data_path = "data/news_labeled.parquet"
+        if os.path.exists(labeled_data_path):
+            # Load labeled data
+            dashboard_df = pd.read_parquet(labeled_data_path)
+
+            # Ensure sector column exists for sector analysis
+            if "sector" not in dashboard_df.columns:
+                dashboard_df["sector"] = None
+
+            # Aggregation mode selection
+            aggregation_mode = st.selectbox(
+                "📈 Choose aggregation method",
                 ["Market (Date)", "Ticker + Date", "Sector + Date"],
                 index=0,
-                key="group_mode",
+                key="aggregation_mode",
+                help="Select how to group and visualize sentiment data",
             )
 
-            if group_mode == "Market (Date)":
-                st.pyplot(sentiment_trend_by_date(df))
+            # Import plotting functions (lazy import for better performance)
+            from app.plots import (
+                sentiment_trend_by_date,
+                sentiment_trend_by_ticker_date,
+                sentiment_trend_by_sector_date,
+            )
 
-            elif group_mode == "Ticker + Date":
-                tickers = sorted([t for t in df["ticker"].dropna().unique().tolist() if t])
-                sel_t = st.selectbox("Ticker", tickers or ["(none)"], key="ticker_select")
-                if tickers:
-                    st.pyplot(sentiment_trend_by_ticker_date(df, sel_t))
+            # Generate appropriate visualization
+            if aggregation_mode == "Market (Date)":
+                st.subheader("Market-Wide Sentiment Trend")
+                market_chart = sentiment_trend_by_date(dashboard_df)
+                st.pyplot(market_chart)
+
+            elif aggregation_mode == "Ticker + Date":
+                st.subheader("Ticker-Specific Sentiment Trends")
+
+                # Get available tickers
+                available_tickers = sorted(
+                    [
+                        ticker
+                        for ticker in dashboard_df["ticker"].dropna().unique()
+                        if ticker
+                    ]
+                )
+
+                if available_tickers:
+                    selected_ticker = st.selectbox(
+                        "Choose ticker symbol", available_tickers, key="ticker_selector"
+                    )
+                    ticker_chart = sentiment_trend_by_ticker_date(
+                        dashboard_df, selected_ticker
+                    )
+                    st.pyplot(ticker_chart)
                 else:
-                    st.info("No tickers found in labeled data.")
+                    st.info(
+                        "ℹ️ No ticker information found in the labeled data. "
+                        "Upload data with ticker/symbol columns to enable "
+                        "ticker analysis."
+                    )
 
             else:  # Sector + Date
-                sectors = sorted([s for s in df["sector"].dropna().unique().tolist() if s])
-                sel_s = st.selectbox("Sector", sectors or ["(none)"], key="sector_select")
-                if sectors:
-                    st.pyplot(sentiment_trend_by_sector_date(df, sel_s))
-                else:
-                    st.info("No sectors found. Provide a sector map CSV in .env (SECTOR_MAP_CSV).")
+                st.subheader("Sector-Specific Sentiment Trends")
 
-            # Export current labeled dataset
-            buf = io.StringIO()
-            df.to_csv(buf, index=False)
-            st.download_button("⬇️ Export labeled CSV", buf.getvalue(), "news_labeled.csv", key="export_btn")
+                # Get available sectors
+                available_sectors = sorted(
+                    [
+                        sector
+                        for sector in dashboard_df["sector"].dropna().unique()
+                        if sector
+                    ]
+                )
+
+                if available_sectors:
+                    selected_sector = st.selectbox(
+                        "Choose sector", available_sectors, key="sector_selector"
+                    )
+                    sector_chart = sentiment_trend_by_sector_date(
+                        dashboard_df, selected_sector
+                    )
+                    st.pyplot(sector_chart)
+                else:
+                    st.info(
+                        "ℹ️ No sector information available. "
+                        "Provide a sector mapping CSV file (see .env.example) "
+                        "to enable sector-based analysis."
+                    )
+
+            # Data export functionality
+            st.subheader("📤 Export Data")
+            csv_buffer = io.StringIO()
+            dashboard_df.to_csv(csv_buffer, index=False)
+
+            st.download_button(
+                label="⬇️ Download Labeled Data as CSV",
+                data=csv_buffer.getvalue(),
+                file_name="news_sentiment_labeled.csv",
+                mime="text/csv",
+                key="export_csv_button",
+                help="Download the processed data with sentiment labels",
+            )
+
         else:
-            st.info("No labeled data yet. Go to Ingest/Label first.")
-    except Exception as e:
-        st.exception(e)
+            # No labeled data available
+            st.info(
+                "ℹ️ No labeled data available yet. "
+                "Please process some data in the **Ingest & Label** tab first."
+            )
+
+    except Exception as dashboard_error:
+        st.error(f"❌ Dashboard error: {dashboard_error}")
+        st.exception(dashboard_error)

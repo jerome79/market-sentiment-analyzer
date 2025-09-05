@@ -1,0 +1,10 @@
+[flake8]
+max-line-length = 88
+exclude = __pycache__,*.pyc,.git,.tox,build,dist,*.egg
+# E203: Whitespace before ':' (conflicts with black formatter)
+# W503: Line break before binary operator (conflicts with black formatter)
+ignore = E203,W503
+# Allow imports after path manipulation for local modules
+per-file-ignores = 
+    app/ui_streamlit.py:E402
+    app/test.py:E402,F401

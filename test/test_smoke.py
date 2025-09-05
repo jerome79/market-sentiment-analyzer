@@ -15,7 +15,7 @@ def test_sentiment_imports():
     # Test class exists
     assert hasattr(sentiment_module, "BaselineVader")
     assert hasattr(sentiment_module, "HuggingFaceClassifier")
-    
+
     # Test backward compatibility
     assert hasattr(sentiment_module, "HFClassifier")
 
@@ -27,7 +27,7 @@ def test_ingest_imports():
     # Test function exists
     assert hasattr(ingest_module, "load_csv_directory")
     assert hasattr(ingest_module, "normalize_and_save")
-    
+
     # Test backward compatibility
     assert hasattr(ingest_module, "load_csv_dir")
 
@@ -45,11 +45,11 @@ def test_plots_imports():
 def test_basic_functionality():
     """Test basic functionality of core components."""
     from app.sentiment import BaselineVader
-    
+
     # Test VADER can be instantiated and make predictions
     vader = BaselineVader()
     test_texts = ["Good news!", "Bad news!", "Neutral text"]
     predictions = vader.predict(test_texts)
-    
+
     assert len(predictions) == 3
     assert all(pred in [-1, 0, 1] for pred in predictions)

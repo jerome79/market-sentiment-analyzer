@@ -1,18 +1,27 @@
-import os
+"""
+Streamlit UI for Market Sentiment Analyzer.
+
+This module provides a web interface for uploading CSV files, analyzing sentiment,
+and visualizing sentiment trends across different aggregation levels.
+"""
 import io
+import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
 # -------- repo-root import fix --------
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from app.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
+# Import after path setup
+from app.ingest import load_csv_dir, normalize_and_save
+
 
 # -------------------- App config --------------------
 load_dotenv()

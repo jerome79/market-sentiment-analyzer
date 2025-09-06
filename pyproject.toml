@@ -13,5 +13,5 @@ known-first-party = ["market_sentiment_analyzer"]
 combine-as-imports = true
 
 [tool.black]
-line-length = 100
+line-length = 175
 target-version = ["py310"]

@@ -38,31 +38,19 @@ def load_labeled_parquet(path="data/news_labeled.parquet"):
 
 @st.cache_data(show_spinner=False)
 def trend_market(df: pd.DataFrame):
-    return (
-        df.groupby("date", as_index=False)["sentiment"]
-        .mean()
-        .rename(columns={"sentiment": "avg_sentiment"})
-    )
+    return df.groupby("date", as_index=False)["sentiment"].mean().rename(columns={"sentiment": "avg_sentiment"})
 
 
 @st.cache_data(show_spinner=False)
 def trend_ticker(df: pd.DataFrame, ticker: str):
     sdf = df[df["ticker"] == ticker]
-    return (
-        sdf.groupby("date", as_index=False)["sentiment"]
-        .mean()
-        .rename(columns={"sentiment": "avg_sentiment"})
-    )
+    return sdf.groupby("date", as_index=False)["sentiment"].mean().rename(columns={"sentiment": "avg_sentiment"})
 
 
 @st.cache_data(show_spinner=False)
 def trend_sector(df: pd.DataFrame, sector: str):
     sdf = df[df.get("sector").eq(sector)]
-    return (
-        sdf.groupby("date", as_index=False)["sentiment"]
-        .mean()
-        .rename(columns={"sentiment": "avg_sentiment"})
-    )
+    return sdf.groupby("date", as_index=False)["sentiment"].mean().rename(columns={"sentiment": "avg_sentiment"})
 
 
 @st.cache_resource
@@ -129,9 +117,7 @@ def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
     out = df.copy()
     if "text" not in out.columns:
         # try to infer a text-like column
-        cand = [
-            c for c in out.columns if any(k in c.lower() for k in ("headline", "title", "text"))
-        ]
+        cand = [c for c in out.columns if any(k in c.lower() for k in ("headline", "title", "text"))]
         if not cand:
             raise ValueError("No text-like column found in input DataFrame.")
         out["text"] = out[cand[0]].astype(str) if cand else ""
@@ -248,9 +234,7 @@ with tab_ingest:
 
         submit = st.form_submit_button("Ingest & Label", use_container_width=True)
 
-    st.caption(
-        f"🔎 Debug — uploaded files: {0 if not up else len(up)} | folder: {folder} | model: {model_choice}"
-    )
+    st.caption(f"🔎 Debug — uploaded files: {0 if not up else len(up)} | folder: {folder} | model: {model_choice}")
 
     if submit:
         try:
@@ -263,9 +247,7 @@ with tab_ingest:
                     except Exception as e:
                         st.warning(f"Error reading {getattr(f, 'name', '<upload>')}: {e}")
                 if not frames:
-                    st.error(
-                        "No valid CSV uploads detected. Please verify your file format (CSV), encoding (UTF-8 recommended), and column headers."
-                    )
+                    st.error("No valid CSV uploads detected. Please verify your file format (CSV), encoding (UTF-8 recommended), and column headers.")
                     st.stop()
                 raw_all = pd.concat(frames, ignore_index=True)
 
@@ -274,11 +256,7 @@ with tab_ingest:
 
                 # Find the first column likely to contain text features (headline/title/text)
                 text_col_idx = next(
-                    (
-                        i
-                        for i, c in enumerate(cols)
-                        if ("headline" in c or "title" in c or "text" in c)
-                    ),
+                    (i for i, c in enumerate(cols) if ("headline" in c or "title" in c or "text" in c)),
                     None,
                 )
                 if text_col_idx is None:
@@ -296,11 +274,7 @@ with tab_ingest:
 
                 raw = pd.DataFrame(
                     {
-                        "date": (
-                            pd.to_datetime(raw_all.iloc[:, date_idx], errors="coerce").dt.date
-                            if date_idx is not None
-                            else None
-                        ),
+                        "date": (pd.to_datetime(raw_all.iloc[:, date_idx], errors="coerce").dt.date if date_idx is not None else None),
                         "ticker": (raw_all.iloc[:, tick_idx] if tick_idx is not None else None),
                         "source": "upload",
                         "headline": raw_all.iloc[:, text_col_idx],
@@ -368,9 +342,7 @@ with tab_dashboard:
 
             else:  # Sector + Date
                 if "sector" not in df:
-                    st.warning(
-                        "No sector column available. Please ensure sector_map.csv was applied during ingest."
-                    )
+                    st.warning("No sector column available. Please ensure sector_map.csv was applied during ingest.")
                 else:
                     sectors = sorted([s for s in df["sector"].dropna().unique().tolist() if s])
                     sel_s = st.selectbox("Select sector", sectors, key="sel_s")

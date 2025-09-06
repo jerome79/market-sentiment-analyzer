@@ -82,19 +82,11 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
             None,
         )
         text_col = next(
-            (
-                c
-                for c in df.columns
-                if pd.Series([c]).str.contains("headline|title|text", case=False).any()
-            ),
+            (c for c in df.columns if pd.Series([c]).str.contains("headline|title|text", case=False).any()),
             None,
         )
         tick_col = next(
-            (
-                c
-                for c in df.columns
-                if pd.Series([c]).str.contains("ticker|symbol", case=False).any()
-            ),
+            (c for c in df.columns if pd.Series([c]).str.contains("ticker|symbol", case=False).any()),
             None,
         )
         if text_col is None:
@@ -104,11 +96,7 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
         for _, r in df.iterrows():
             rows.append(
                 {
-                    "date": (
-                        pd.to_datetime(r.get(date_col), errors="coerce").date()
-                        if date_col
-                        else None
-                    ),
+                    "date": (pd.to_datetime(r.get(date_col), errors="coerce").date() if date_col else None),
                     "ticker": (r.get(tick_col) if tick_col else None),
                     "source": os.path.basename(fp),
                     "headline": r.get(text_col),

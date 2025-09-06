@@ -12,6 +12,3 @@ sentencepiece>=0.2
 
 # optional RSS
 feedparser==6.0.11
-
-# tests
-pytest==8.3.2

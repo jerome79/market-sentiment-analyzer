@@ -53,11 +53,7 @@ def load_csv(path: str, limit: int | None):
 
     norm = pd.DataFrame(
         {
-            "date": (
-                pd.to_datetime(df.iloc[:, date_idx], errors="coerce").dt.date
-                if date_idx is not None
-                else None
-            ),
+            "date": (pd.to_datetime(df.iloc[:, date_idx], errors="coerce").dt.date if date_idx is not None else None),
             "ticker": df.iloc[:, tick_idx] if tick_idx is not None else None,
             "source": Path(path).name,
             "headline": df.iloc[:, text_idx],
@@ -119,9 +115,7 @@ def label_with_dedupe(df: pd.DataFrame, model):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True, help="Path to input CSV")
-    ap.add_argument(
-        "--model", required=True, help="'vader' or HF model id (e.g., ProsusAI/finbert)"
-    )
+    ap.add_argument("--model", required=True, help="'vader' or HF model id (e.g., ProsusAI/finbert)")
     ap.add_argument("--batch-size", type=int, default=32, help="HF batch size")
     ap.add_argument("--max-len", type=int, default=96, help="HF max tokens")
     ap.add_argument("--limit", type=int, default=None, help="Cap rows")

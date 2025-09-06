@@ -59,13 +59,9 @@ class HFClassifier:
     """HuggingFace transformer-based sentiment classifier."""
 
     def __init__(self, model_id=None):
-        self.model_id = model_id or os.getenv(
-            "SENTIMENT_MODEL", "cardiffnlp/twitter-roberta-base-sentiment-latest"
-        )
+        self.model_id = model_id or os.getenv("SENTIMENT_MODEL", "cardiffnlp/twitter-roberta-base-sentiment-latest")
         self.tok = AutoTokenizer.from_pretrained(self.model_id, use_fast=True)
-        self.mdl = (
-            AutoModelForSequenceClassification.from_pretrained(self.model_id).to(DEVICE).eval()
-        )
+        self.mdl = AutoModelForSequenceClassification.from_pretrained(self.model_id).to(DEVICE).eval()
         self.lbl = {0: -1, 1: 0, 2: 1}  # most 3-class financial models: neg/neu/pos
 
     @torch.inference_mode()

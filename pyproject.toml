@@ -15,3 +15,15 @@ combine-as-imports = true
 [tool.black]
 line-length = 175
 target-version = ["py310"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-sentiment-analyzer"
+version = "0.1.0"
+description = "Market Sentiment Analyzer for analysts"
+requires-python = ">=3.10"
+readme = "README.md"
+authors = [{ name = "Jerome Petit", email = "jerome.petit@outlook.com" }]

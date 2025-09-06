@@ -70,6 +70,9 @@ python scripts/benchmark.py --csv data/news_perf_test_50k.csv --model ProsusAI/f
 
 ### Example Benchmark (local CPU, batch=32)
 Dataset	Model	Rows	Unique  Rows	Dedupe Ratio	Rows/sec
-10k	    VADER	10k	    10k	    0%	    ~25k 
-50k	    FinBERT	50k	    48k	    4%	    ~1.2k
-20k	    RoBERTa	20k	    19.5k	2.5%	~1.5k
+10k	    VADER	10k	    10k	    0%	    0               31143.4
+10k	    FinBERT	10k	    10k	    0%	    0               53
+10k	    RoBERTa	10k	    10k	    0%  	0               68.7
+10k	    VADER	10k	    10k	    5%	    0.05            33133.1
+10k	    FinBERT	10k	    10k	    0%	    0.05            53
+10k	    RoBERTa	10k	    10k	    0%  	0.05            71.2

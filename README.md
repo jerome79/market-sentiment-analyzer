@@ -1,37 +1,44 @@
-# Market Sentiment Analyzer
+# 📊 Market Sentiment Analyzer
 
 ## Overview
-Analyze financial news/headlines to label sentiment and track trends for alpha generation and risk alerts.
+The **Market Sentiment Analyzer** is an end-to-end NLP project for financial applications.  
+It ingests news/headlines, labels sentiment (positive/neutral/negative), and visualizes market, ticker, and sector sentiment trends.  
 
-## Features
-- Ingest CSV data
-- Label sentiment using VADER/FinBERT/RoBERTa
-- Dashboard for market/ticker/sector sentiment
+👉 Business value:
+- **Traders / PMs**: identify sentiment-driven momentum & risk alerts  
+- **Product managers**: showcase applied LLM/NLP skills for finance  
+- **Quant researchers**: integrate sentiment factors into alpha models  
 
-## Installation
+---
+
+## ✨ Features
+- Ingest CSV files or upload news datasets
+- Label sentiment using:
+  - **VADER** (fast, rule-based baseline)
+  - **FinBERT** (ProsusAI, financial tone)
+  - **RoBERTa** (CardiffNLP, social/news sentiment)
+- Dashboard (Streamlit):
+  - Market sentiment by date
+  - Ticker-level sentiment
+  - Sector-level sentiment
+  - Date range filters, CSV export
+- Optimizations:
+  - Cached aggregations
+  - Duplicate deduplication before labeling
+  - Tunable batch size & max sequence length
+- Benchmarking harness to measure throughput across datasets & models
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install
 ```bash
 git clone https://github.com/jerome79/market-sentiment-analyzer.git
 cd market-sentiment-analyzer
 cp .env.example .env
 pip install -r requirements.txt
-```
 
-## Usage
-1. Upload CSVs or specify a folder
-2. Select sentiment model
-3. View dashboard for insights
-
-## Models
-- VADER (fast)
-- RoBERTa (CardiffNLP)
-- FinBERT (ProsusAI, Tone)
-
-## Limitations & Roadmap
-- Handles drift, sarcasm, domain terms (future improvements)
-- See `issues/` for next steps
-
-## License
-MIT
 ## Example Input CSV
 
 ```csv
@@ -47,4 +54,22 @@ date,ticker,headline,text,sentiment,confidence
 2025-01-01,AAPL,Apple rises,Apple stock surges after earnings,1,0.95
 2025-01-01,TSLA,Tesla falls,Tesla shares dip after recall news,-1,0.90
 ```
-...
+## Benchmarking
+
+### VADER, 10k rows
+python scripts/benchmark.py --csv data/news_perf_test_10k.csv --model vader
+
+### FinBERT, 50k rows, batch 32
+python scripts/benchmark.py --csv data/news_perf_test_50k.csv --model ProsusAI/finbert --batch-size 32
+
+### RoBERTa, 100k rows, capped at 20k
+python scripts/benchmark.py --csv data/news_perf_test_100k.csv --model cardiffnlp/twitter-roberta-base-sentiment-latest --limit 20000
+
+### Report saved as a CSV
+python scripts/benchmark.py --csv data/news_perf_test_50k.csv --model ProsusAI/finbert --results out/bench.csv
+
+### Example Benchmark (local CPU, batch=32)
+Dataset	Model	Rows	Unique  Rows	Dedupe Ratio	Rows/sec
+10k	    VADER	10k	    10k	    0%	    ~25k 
+50k	    FinBERT	50k	    48k	    4%	    ~1.2k
+20k	    RoBERTa	20k	    19.5k	2.5%	~1.5k

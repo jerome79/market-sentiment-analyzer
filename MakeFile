@@ -1,3 +1,17 @@
-ui: streamlit run app/ui_streamlit.py
-ingest: python app/ingest.py
-test: pytest -q
+.PHONY: format lint test precommit coverage
+
+format:
+	black .
+	ruff check . --fix
+
+lint:
+	ruff check .
+
+test:
+	pytest -q
+
+coverage:
+	pytest -q --cov=app --cov-report=term-missing
+
+precommit:
+	pre-commit run --all-files

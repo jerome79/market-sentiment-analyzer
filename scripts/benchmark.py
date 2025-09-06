@@ -13,20 +13,21 @@ Usage examples:
   python scripts/benchmark.py --csv data/news_perf_test.csv --model cardiffnlp/twitter-roberta-base-sentiment-latest --results out/bench.csv --save-labeled out/labeled.parquet
 """
 import argparse
-import os
-import time
-import hashlib
 import csv
+import hashlib
+import os
 import sys
+import time
 from pathlib import Path
+
 import pandas as pd
+
+from app.sentiment import BaselineVader, HFClassifier
 
 # Ensure repo root is on sys.path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-
-from app.sentiment import BaselineVader, HFClassifier
 
 
 def md5(s: str) -> str:
@@ -41,19 +42,28 @@ def load_csv(path: str, limit: int | None):
         df = df.head(limit)
 
     cols = [c.lower() for c in df.columns]
-    text_idx = next((i for i, c in enumerate(cols) if "headline" in c or "title" in c or "text" in c), None)
+    text_idx = next(
+        (i for i, c in enumerate(cols) if "headline" in c or "title" in c or "text" in c),
+        None,
+    )
     if text_idx is None:
         raise ValueError("No text-like column (headline/title/text) found.")
     date_idx = next((i for i, c in enumerate(cols) if "date" in c or "time" in c), None)
     tick_idx = next((i for i, c in enumerate(cols) if "ticker" in c or "symbol" in c), None)
 
-    norm = pd.DataFrame({
-        "date": pd.to_datetime(df.iloc[:, date_idx], errors="coerce").dt.date if date_idx is not None else None,
-        "ticker": df.iloc[:, tick_idx] if tick_idx is not None else None,
-        "source": Path(path).name,
-        "headline": df.iloc[:, text_idx],
-        "text": df.iloc[:, text_idx],
-    })
+    norm = pd.DataFrame(
+        {
+            "date": (
+                pd.to_datetime(df.iloc[:, date_idx], errors="coerce").dt.date
+                if date_idx is not None
+                else None
+            ),
+            "ticker": df.iloc[:, tick_idx] if tick_idx is not None else None,
+            "source": Path(path).name,
+            "headline": df.iloc[:, text_idx],
+            "text": df.iloc[:, text_idx],
+        }
+    )
     dt = (time.perf_counter() - t0) * 1000
     return norm, dt
 
@@ -109,7 +119,9 @@ def label_with_dedupe(df: pd.DataFrame, model):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True, help="Path to input CSV")
-    ap.add_argument("--model", required=True, help="'vader' or HF model id (e.g., ProsusAI/finbert)")
+    ap.add_argument(
+        "--model", required=True, help="'vader' or HF model id (e.g., ProsusAI/finbert)"
+    )
     ap.add_argument("--batch-size", type=int, default=32, help="HF batch size")
     ap.add_argument("--max-len", type=int, default=96, help="HF max tokens")
     ap.add_argument("--limit", type=int, default=None, help="Cap rows")

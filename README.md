@@ -1,13 +1,13 @@
 # 📊 Market Sentiment Analyzer
 
 ## Overview
-The **Market Sentiment Analyzer** is an end-to-end NLP project for financial applications.  
-It ingests news/headlines, labels sentiment (positive/neutral/negative), and visualizes market, ticker, and sector sentiment trends.  
+The **Market Sentiment Analyzer** is an end-to-end NLP project for financial applications.
+It ingests news/headlines, labels sentiment (positive/neutral/negative), and visualizes market, ticker, and sector sentiment trends.
 
 👉 Business value:
-- **Traders / PMs**: identify sentiment-driven momentum & risk alerts  
-- **Product managers**: showcase applied LLM/NLP skills for finance  
-- **Quant researchers**: integrate sentiment factors into alpha models  
+- **Traders / PMs**: identify sentiment-driven momentum & risk alerts
+- **Product managers**: showcase applied LLM/NLP skills for finance
+- **Quant researchers**: integrate sentiment factors into alpha models
 
 ---
 

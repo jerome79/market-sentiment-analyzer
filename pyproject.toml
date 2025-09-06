@@ -1,0 +1,17 @@
+[tool.ruff]
+line-length = 175
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PIE", "C4", "ARG", "RUF"]
+ignore = [
+  "E203",  # keep for Black compatibility on slicing
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["market_sentiment_analyzer"]
+combine-as-imports = true
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]

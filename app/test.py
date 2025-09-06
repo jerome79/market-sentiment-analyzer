@@ -1,9 +1,7 @@
 import os
-import io
 import sys
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -12,8 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
-from app.sentiment import BaselineVader, HFClassifier
+
 # optional plotting helpers (fallbacks defined below if not present)
 
 

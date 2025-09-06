@@ -2,19 +2,26 @@
 Module for ingesting and normalizing financial news CSV data.
 Handles loading data from folders, merging sector information, and writing to Parquet.
 """
-import os, glob, pandas as pd
-from dotenv import load_dotenv
+
+import glob
+import os
 from pathlib import Path
+
+import pandas as pd
+from dotenv import load_dotenv
+
 load_dotenv()
 
-SCHEMA = ["date","ticker","source","headline","text"]
+SCHEMA = ["date", "ticker", "source", "headline", "text"]
+
 
 def _resolve_dir(csv_dir: str | None) -> Path:
     """
     Resolve a CSV directory to an absolute path, using the repo root as base if necessary.
 
     Parameters:
-        csv_dir (str | None): Directory containing CSV files. If None, uses NEWS_CSV_DIR env variable or defaults to 'data'.
+        csv_dir (str | None): Directory containing CSV files.
+        If None, uses NEWS_CSV_DIR env variable or defaults to 'data'.
 
     Returns:
         Path: Absolute path to directory.
@@ -56,7 +63,7 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
 
     paths = sorted(glob.glob(pattern))
     if not paths:
-        print(f"[ingest] ⚠️ no CSV files found. Ensure folder exists and has *.csv")
+        print("[ingest] ⚠️ no CSV files found. Ensure folder exists and has *.csv")
     for fp in paths:
         try:
             df = pd.read_csv(fp)
@@ -70,28 +77,52 @@ def load_csv_dir(csv_dir: str | None = None) -> pd.DataFrame:
             print(f"[ingest] skip {fp}: {e}")
             continue
         # best-effort column names
-        date_col  = next((c for c in df.columns if pd.Series([c]).str.contains("date|time", case=False).any()), None)
-        text_col  = next((c for c in df.columns if pd.Series([c]).str.contains("headline|title|text", case=False).any()), None)
-        tick_col  = next((c for c in df.columns if pd.Series([c]).str.contains("ticker|symbol", case=False).any()), None)
+        date_col = next(
+            (c for c in df.columns if pd.Series([c]).str.contains("date|time", case=False).any()),
+            None,
+        )
+        text_col = next(
+            (
+                c
+                for c in df.columns
+                if pd.Series([c]).str.contains("headline|title|text", case=False).any()
+            ),
+            None,
+        )
+        tick_col = next(
+            (
+                c
+                for c in df.columns
+                if pd.Series([c]).str.contains("ticker|symbol", case=False).any()
+            ),
+            None,
+        )
         if text_col is None:
             print(f"[ingest] skip {fp}: no headline/title/text column")
             continue
 
         for _, r in df.iterrows():
-            rows.append({
-                "date": pd.to_datetime(r.get(date_col), errors="coerce").date() if date_col else None,
-                "ticker": (r.get(tick_col) if tick_col else None),
-                "source": os.path.basename(fp),
-                "headline": r.get(text_col),
-                "text": r.get(text_col)
-            })
+            rows.append(
+                {
+                    "date": (
+                        pd.to_datetime(r.get(date_col), errors="coerce").date()
+                        if date_col
+                        else None
+                    ),
+                    "ticker": (r.get(tick_col) if tick_col else None),
+                    "source": os.path.basename(fp),
+                    "headline": r.get(text_col),
+                    "text": r.get(text_col),
+                }
+            )
 
     out = pd.DataFrame(rows, columns=SCHEMA)
     out.dropna(subset=["text"], inplace=True)
     print(f"[ingest] loaded rows: {len(out)}")
     return out
 
-def normalize_and_save(df: pd.DataFrame, out_path: str)-> pd.DataFrame:
+
+def normalize_and_save(df: pd.DataFrame, out_path: str) -> pd.DataFrame:
     """
     Normalize financial news DataFrame and save to Parquet.
 
@@ -116,7 +147,7 @@ def normalize_and_save(df: pd.DataFrame, out_path: str)-> pd.DataFrame:
     sector_path = _resolve_dir(os.getenv("SECTOR_MAP_CSV"))
     if sector_path.exists():
         sector_map = pd.read_csv(sector_path)
-        df = df.merge(sector_map[["ticker","sector"]], on="ticker", how="left")
+        df = df.merge(sector_map[["ticker", "sector"]], on="ticker", how="left")
 
     df.to_parquet(out_path, index=False)
     return df

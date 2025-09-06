@@ -9,13 +9,12 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
-from app.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
-
 # -------- repo-root import fix --------
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
 
 # -------------------- App config --------------------
 load_dotenv()

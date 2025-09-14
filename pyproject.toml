@@ -25,5 +25,6 @@ name = "market-sentiment-analyzer"
 version = "0.1.0"
 description = "Market Sentiment Analyzer for analysts"
 requires-python = ">=3.10"
+dependencies = ["pandas","pyarrow"]
 readme = "README.md"
 authors = [{ name = "Jerome Petit", email = "jerome.petit@outlook.com" }]

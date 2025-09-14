@@ -28,3 +28,7 @@ requires-python = ">=3.10"
 dependencies = ["pandas","pyarrow"]
 readme = "README.md"
 authors = [{ name = "Jerome Petit", email = "jerome.petit@outlook.com" }]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["data*"]

@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
+from market_sentiment_analyzer.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
 
 # -------------------- App config --------------------
 load_dotenv()
@@ -63,7 +63,7 @@ def _get_hf(model_id: str):
     Returns:
         HFClassifier: Instantiated classifier.
     """
-    from app.sentiment import HFClassifier
+    from market_sentiment_analyzer.sentiment import HFClassifier
 
     # cache only the HF model (VADER is tiny)
     return HFClassifier(model_id)
@@ -80,7 +80,7 @@ def _choose_model(model_choice: str, hf_id: str):
     Returns:
         Model instance for sentiment prediction.
     """
-    from app.sentiment import BaselineVader
+    from market_sentiment_analyzer.sentiment import BaselineVader
 
     return _get_hf(hf_id) if model_choice != "VADER (fast)" else BaselineVader()
 

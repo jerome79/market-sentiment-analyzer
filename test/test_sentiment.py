@@ -6,7 +6,7 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from app.sentiment import HFClassifier
+from market_sentiment_analyzer.sentiment import HFClassifier
 
 
 class DummyTok:
@@ -32,7 +32,7 @@ class DummyModel:
 
 def test_hfclassifier_predict_is_mocked_and_maps_to_int_labels(monkeypatch):
     # Fully mock transformers to avoid network/model downloads
-    import app.sentiment as sent
+    import market_sentiment_analyzer.sentiment as sent
 
     monkeypatch.setattr(sent, "AutoTokenizer", types.SimpleNamespace(from_pretrained=lambda *a, **k: DummyTok()))
     monkeypatch.setattr(sent, "AutoModelForSequenceClassification", types.SimpleNamespace(from_pretrained=lambda *a, **k: DummyModel()))

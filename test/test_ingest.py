@@ -6,7 +6,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from app.ingest import SCHEMA, load_csv_dir, normalize_and_save
+from market_sentiment_analyzer.ingest import SCHEMA, load_csv_dir, normalize_and_save
 
 
 def test_load_csv_dir_empty_returns_empty_df_with_schema(tmp_path):

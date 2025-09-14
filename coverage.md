@@ -22,7 +22,7 @@ Run locally
 ```bash
 # From repo root
 pip install -r requirements-dev.txt  # ensure pytest + pytest-cov installed
-pytest --cov=app --cov-report=term-missing
+pytest --cov=market_sentiment_analyzer --cov-report=term-missing
 ```
 
 Tips

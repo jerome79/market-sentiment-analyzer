@@ -37,12 +37,3 @@ jobs:
         with:
           name: coverage-xml
           path: coverage.xml
-
-      # Optional: Upload to Codecov if you add CODECOV_TOKEN secret
-      - name: Upload coverage to Codecov
-        if: ${{ secrets.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          fail_ci_if_error: false

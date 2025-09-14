@@ -72,3 +72,36 @@ def test_normalize_and_save_merges_sector_and_writes_parquet(tmp_path, monkeypat
     read_back = pd.read_parquet(out_path)
     assert "sector" in read_back.columns
     assert set(read_back["sector"].dropna().unique()) == {"Tech"}
+
+
+def test_load_csv_dir_empty_returns_empty_df_with_schema(tmp_path: Path) -> None:
+    """
+    Test that load_csv_dir returns an empty DataFrame with the correct schema when the directory is empty.
+
+    Args:
+        tmp_path (Path): Temporary directory provided by pytest.
+    """
+    df = load_csv_dir(str(tmp_path))
+    assert list(df.columns) == SCHEMA
+    assert df.empty
+
+
+def test_load_csv_dir_varied_columns_and_source_names(tmp_path: Path) -> None:
+    """
+    Test that load_csv_dir correctly loads CSV files with varied columns and source names.
+    """
+    f1 = tmp_path / "a.csv"
+    pd.DataFrame({"time": ["2024-01-01"], "headline": ["Markets rally"]}).to_csv(f1, index=False)
+    f2 = tmp_path / "b.csv"
+    pd.DataFrame({"date": ["2024-01-03"], "title": ["Tech stocks surge"], "symbol": ["AAPL"]}).to_csv(f2, index=False)
+
+    df = load_csv_dir(str(tmp_path))
+    # Should have standard schema
+    assert set(df.columns) == set(SCHEMA)
+    # Should have 2 rows (one per file)
+    assert len(df) == 2
+    # Sources should match file names
+    assert set(df["source"].unique()) == {f1.name, f2.name}
+    # Headline and text columns should not be empty
+    assert df["headline"].notna().all()
+    assert df["text"].notna().all()

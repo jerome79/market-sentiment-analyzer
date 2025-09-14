@@ -35,7 +35,7 @@ It ingests news/headlines, labels sentiment (positive/neutral/negative), and vis
 ### 1. Install
 ```bash
 git clone https://github.com/jerome79/market-sentiment-analyzer.git
-cd market_sentiment_analyzer
+cd market-sentiment-analyzer
 cp .env.example .env
 pip install -r requirements.txt
 

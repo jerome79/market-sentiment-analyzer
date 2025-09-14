@@ -104,14 +104,14 @@ def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
 
     - Infers 'text' column if missing.
     - Uses model's predict or predict_with_scores for sentiment and confidence.
-    - Adds 'sentiment' and optionally 'confidence' columns.
+    - Adds 'sentiment', optionally 'confidence', and 'avg_sentiment' columns.
 
     Parameters:
         df (pd.DataFrame): DataFrame containing at least a text-like column.
         model: Model with .predict or .predict_with_scores method.
 
     Returns:
-        pd.DataFrame: Labeled DataFrame with 'sentiment' and optionally 'confidence'.
+        pd.DataFrame: Labeled DataFrame with 'sentiment', optionally 'confidence', and 'avg_sentiment'.
     """
     out = df.copy()
     if "text" not in out.columns:
@@ -132,6 +132,14 @@ def _label_df(df: pd.DataFrame, model) -> pd.DataFrame:
     except Exception:
         uniq["sentiment"] = model.predict(tx)
     out = out.merge(uniq.drop(columns=["text"]), on="__h", how="left").drop(columns="__h")
+
+    # Compute avg_sentiment by date and ticker
+    if "date" in out.columns and "ticker" in out.columns and "sentiment" in out.columns:
+        avg_sent = out.groupby(["date", "ticker"])["sentiment"].transform("mean")
+        out["avg_sentiment"] = avg_sent
+    else:
+        out["avg_sentiment"] = None
+
     return out
 
 

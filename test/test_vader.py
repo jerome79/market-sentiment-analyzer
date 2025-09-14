@@ -6,7 +6,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
-from app.sentiment import BaselineVader
+from market_sentiment_analyzer.sentiment import BaselineVader
 
 
 def test_vader_predict_returns_int_labels_and_handles_none():

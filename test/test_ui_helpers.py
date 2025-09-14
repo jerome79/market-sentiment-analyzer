@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.ui_streamlit import _choose_model, _hash, _label_df, resolve_data_dir
+from market_sentiment_analyzer.ui_streamlit import _choose_model, _hash, _label_df, resolve_data_dir
 
 
 class DummyModel:
@@ -63,7 +63,7 @@ def test_resolve_data_dir_returns_absolute(tmp_path, monkeypatch):
 def test_choose_model(monkeypatch):
     sentinel = object()
     # replace _get_hf to return sentinel
-    import app.ui_streamlit as ui
+    import market_sentiment_analyzer.ui_streamlit as ui
 
     monkeypatch.setattr(ui, "_get_hf", lambda mid: sentinel)
 

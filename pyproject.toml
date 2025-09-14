@@ -30,5 +30,5 @@ readme = "README.md"
 authors = [{ name = "Jerome Petit", email = "jerome.petit@outlook.com" }]
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["market_sentiment_analyzer*"]
 exclude = ["data*"]

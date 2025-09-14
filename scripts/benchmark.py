@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.sentiment import BaselineVader, HFClassifier
+from market_sentiment_analyzer.sentiment import BaselineVader, HFClassifier
 
 # Ensure repo root is on sys.path
 ROOT = Path(__file__).resolve().parents[1]

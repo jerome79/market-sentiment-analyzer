@@ -1,5 +1,3 @@
-# market-sentiment-analyzer/app/public_api.py
-
 import pandas as pd
 
 

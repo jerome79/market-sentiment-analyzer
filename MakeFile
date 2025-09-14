@@ -11,7 +11,7 @@ test:
 	pytest -q
 
 coverage:
-	pytest -q --cov=app --cov-report=term-missing
+	pytest -q --cov=market_sentiment_analyzer --cov-report=term-missing
 
 precommit:
 	pre-commit run --all-files

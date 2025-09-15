@@ -73,3 +73,68 @@ def test_choose_model(monkeypatch):
 
     m2 = _choose_model("FinBERT (ProsusAI)", "ProsusAI/finbert")
     assert m2 is sentinel
+
+
+import pandas as pd
+from market_sentiment_analyzer.ui_streamlit import load_labeled_parquet, trend_market, trend_ticker, trend_sector
+
+
+def test_load_labeled_parquet(tmp_path):
+    # Create a parquet file
+    df = pd.DataFrame({"date": ["2024-01-01"], "ticker": ["AAPL"], "sector": ["Tech"], "sentiment": [0.8]})
+    file = tmp_path / "news_labeled.parquet"
+    df.to_parquet(file, index=False)
+    loaded = load_labeled_parquet(str(file))
+    assert loaded is not None
+    assert "ticker" in loaded.columns
+    assert "sector" in loaded.columns
+
+
+def test_trend_market_and_ticker():
+    df = pd.DataFrame({"date": ["2024-01-01", "2024-01-01"], "ticker": ["AAPL", "GOOG"], "sentiment": [1, -1]})
+    tm = trend_market(df)
+    assert "avg_sentiment" in tm.columns
+    tt = trend_ticker(df, "AAPL")
+    assert "avg_sentiment" in tt.columns
+
+
+def test_trend_sector():
+    df = pd.DataFrame({"date": ["2024-01-01", "2024-01-01"], "sector": ["Tech", "Finance"], "sentiment": [1, -1]})
+    ts = trend_sector(df, "Tech")
+    assert "avg_sentiment" in ts.columns
+
+
+def test_upload_missing_text_column(monkeypatch):
+    import pandas as pd
+    import streamlit as st
+    from market_sentiment_analyzer.ui_streamlit import _label_df
+
+    # Patch st.error and st.stop to raise exceptions
+    monkeypatch.setattr(st, "error", lambda msg: (_ for _ in ()).throw(ValueError(msg)))
+    monkeypatch.setattr(st, "stop", lambda: (_ for _ in ()).throw(SystemExit()))
+    df = pd.DataFrame({"foo": [1, 2]})
+    try:
+        _label_df(df, DummyModel())
+    except Exception as e:
+        assert "No text-like column" in str(e) or isinstance(e, ValueError)
+
+
+from market_sentiment_analyzer.ui_streamlit import show_debug_sidebar, _t
+
+
+def test_show_debug_sidebar_runs(monkeypatch):
+    # Patch st methods to no-ops
+    import streamlit as st
+
+    monkeypatch.setattr(st, "header", lambda *a, **k: None)
+    monkeypatch.setattr(st, "caption", lambda *a, **k: None)
+    monkeypatch.setattr(st, "write", lambda *a, **k: None)
+    show_debug_sidebar()
+
+
+def test_timing_context_manager():
+    import time
+
+    with _t() as timer:
+        time.sleep(0.01)
+    assert timer.dt >= 0

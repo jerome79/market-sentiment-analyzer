@@ -16,4 +16,4 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8501
 
 EXPOSE 8501
-CMD ["streamlit", "run", "market_sentiment_analyzer/app.py", "--server.port=8501", "--server.headless=true"]
+CMD ["streamlit", "run", "market_sentiment_analyzer/ui_streamlit.py", "--server.port=8501", "--server.headless=true"]

@@ -1,5 +1,31 @@
 # 📊 Market Sentiment Analyzer
 
+## Quick Demo (60 seconds)
+
+```bash
+git clone https://github.com/jerome79/market-sentiment-analyzer.git
+cd market-sentiment-analyzer
+make demo
+# then open http://localhost:8501
+```
+### Example Benchmark (local CPU, batch=32)
+Dataset	Model	Rows	Unique  Rows	Dedupe Ratio	Rows/sec
+10k	    VADER	10k	    10k	    0%	    0               31143.4
+10k	    FinBERT	10k	    10k	    0%	    0               53
+10k	    RoBERTa	10k	    10k	    0%  	0               68.7
+10k	    VADER	10k	    10k	    5%	    0.05            33133.1
+10k	    FinBERT	10k	    10k	    0%	    0.05            53
+10k	    RoBERTa	10k	    10k	    0%  	0.05            71.2
+
+### Screenshots
+
+![ingest label dashboard.png](screenshot/ingest%20label%20dashboard.png)
+![market_sentiment.png](screenshot/market_sentiment.png)
+![table_view.png](screenshot/table_view.png)
+![sector_view.png](screenshot/sector_view.png)
+![sector_graph.png](screenshot/sector_graph.png)
+![ticker_view.png](screenshot/ticker_view.png)
+![ticker_graph.png](screenshot/ticker_graph.png)
 ## Overview
 The **Market Sentiment Analyzer** is an end-to-end NLP project for financial applications.
 It ingests news/headlines, labels sentiment (positive/neutral/negative), and visualizes market, ticker, and sector sentiment trends.
@@ -46,6 +72,11 @@ date,ticker,headline,text
 2025-01-01,AAPL,Apple rises,Apple stock surges after earnings
 2025-01-01,TSLA,Tesla falls,Tesla shares dip after recall news
 ```
+### Docker quickstart
+```bash
+docker compose up --build
+# open http://localhost:8501
+```
 
 ## Example Labeled Output
 
@@ -67,12 +98,3 @@ python scripts/benchmark.py --csv data/news_perf_test_100k.csv --model cardiffnl
 
 ### Report saved as a CSV
 python scripts/benchmark.py --csv data/news_perf_test_50k.csv --model ProsusAI/finbert --results out/bench.csv
-
-### Example Benchmark (local CPU, batch=32)
-Dataset	Model	Rows	Unique  Rows	Dedupe Ratio	Rows/sec
-10k	    VADER	10k	    10k	    0%	    0               31143.4
-10k	    FinBERT	10k	    10k	    0%	    0               53
-10k	    RoBERTa	10k	    10k	    0%  	0               68.7
-10k	    VADER	10k	    10k	    5%	    0.05            33133.1
-10k	    FinBERT	10k	    10k	    0%	    0.05            53
-10k	    RoBERTa	10k	    10k	    0%  	0.05            71.2

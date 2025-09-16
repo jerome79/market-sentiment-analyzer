@@ -8,14 +8,14 @@ setup:
     cp -n .env.example .env || true
 
 run:
-    streamlit run market_sentiment_analyzer/app.py --server.port 8501
+    streamlit run market_sentiment_analyzer/ui_streamlit.py --server.port 8501
 
 demo: setup
     $(PY) scripts/bootstrap_sample.py
     $(MAKE) run
 
 bench:
-    $(PY) scripts/benchmark.py --csv data/samples/news_tiny.csv --model vader --results out/bench_demo.csv
+    $(PY) scripts/benchmark.py --csv data/news_tiny.csv --model vader --results out/bench_demo.csv
 
 fmt:
     ruff check --fix || true
@@ -26,10 +26,10 @@ lint:
     black --check .
 
 test:
-\tpytest -q
+    pytest -q
 
 docker-up:
-\tdocker compose up --build
+    docker compose up --build
 
 docker-down:
-\tdocker compose down -v
+    docker compose down -v

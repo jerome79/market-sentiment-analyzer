@@ -308,6 +308,12 @@ with tab_ingest:
             labeled.to_parquet("data/news_labeled.parquet", index=False)
             st.success(f"Ingested & labeled: {len(labeled)} rows → data/news_labeled.parquet")
             st.dataframe(labeled.head(20))
+            # 6) Immediate CSV download (Ingest/Label tab)
+            _buf = io.StringIO()
+            labeled.to_csv(_buf, index=False)
+            st.download_button(
+                "⬇️ Download labeled CSV", _buf.getvalue(), "news_labeled.csv", key="download_labeled_csv_ingest", help="Download the just-labeled dataset as CSV"
+            )
 
         except Exception as e:
             st.exception(e)

@@ -54,6 +54,7 @@ It ingests news/headlines, labels sentiment (positive/neutral/negative), and vis
   - Tunable batch size & max sequence length
 - Benchmarking harness to measure throughput across datasets & models
 
+- ![CI](https://github.com/jerome79/market-sentiment-analyzer/actions/workflows/ci.yml/badge.svg)
 ---
 
 ## 🚀 Quick Start
@@ -98,5 +99,3 @@ python scripts/benchmark.py --csv data/news_perf_test_100k.csv --model cardiffnl
 
 ### Report saved as a CSV
 python scripts/benchmark.py --csv data/news_perf_test_50k.csv --model ProsusAI/finbert --results out/bench.csv
-
-![CI](https://github.com/jerome79/market-sentiment-analyzer/actions/workflows/ci.yml/badge.svg)

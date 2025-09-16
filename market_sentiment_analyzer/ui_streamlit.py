@@ -171,7 +171,7 @@ def resolve_data_dir(env_var: str = "NEWS_CSV_DIR") -> Path:
     return p.resolve()
 
 
-def show_debug_sidebar():
+def show_debug_sidebar() -> None:
     """Show debug info in sidebar."""
     st.header("🔧 Debug")
     st.caption("Use this to verify inputs and code path.")
@@ -201,6 +201,26 @@ def _t():
             self.dt = (time.perf_counter() - self.s) * 1000  # ms
 
     return T()
+
+
+def process_uploaded_files(up):
+    """Handle upload processing, returns DataFrame or raises."""
+    frames = []
+    for f in up:
+        try:
+            frames.append(pd.read_csv(f))
+        except Exception as e:
+            raise ValueError(f"Error reading {getattr(f, 'name', '<upload>')}: {e}")
+    if not frames:
+        raise ValueError("No valid CSV uploads detected. Please verify your file format (CSV), encoding (UTF-8 recommended), and column headers.")
+    return pd.concat(frames, ignore_index=True)
+
+
+def process_folder(folder):
+    raw = load_csv_dir(folder)
+    if raw.empty:
+        raise ValueError("No rows loaded from folder. Check path and CSV presence.")
+    return raw
 
 
 # -------------------- UI --------------------
@@ -255,52 +275,9 @@ with tab_ingest:
         try:
             # 1) Load raw (either uploads or folder)
             if up:
-                frames = []
-                for f in up:
-                    try:
-                        frames.append(pd.read_csv(f))
-                    except Exception as e:
-                        st.warning(f"Error reading {getattr(f, 'name', '<upload>')}: {e}")
-                if not frames:
-                    st.error("No valid CSV uploads detected. Please verify your file format (CSV), encoding (UTF-8 recommended), and column headers.")
-                    st.stop()
-                raw_all = pd.concat(frames, ignore_index=True)
-
-                # best-effort column mapping
-                cols = [c.lower() for c in raw_all.columns]
-
-                # Find the first column likely to contain text features (headline/title/text)
-                text_col_idx = next(
-                    (i for i, c in enumerate(cols) if ("headline" in c or "title" in c or "text" in c)),
-                    None,
-                )
-                if text_col_idx is None:
-                    st.error("No text-like column found (need headline/title/text).")
-                    st.stop()
-                # optional date/ticker
-                date_idx = next(
-                    (i for i, c in enumerate(cols) if ("date" in c or "time" in c)),
-                    None,
-                )
-                tick_idx = next(
-                    (i for i, c in enumerate(cols) if ("ticker" in c or "symbol" in c)),
-                    None,
-                )
-
-                raw = pd.DataFrame(
-                    {
-                        "date": (pd.to_datetime(raw_all.iloc[:, date_idx], errors="coerce").dt.date if date_idx is not None else None),
-                        "ticker": (raw_all.iloc[:, tick_idx] if tick_idx is not None else None),
-                        "source": "upload",
-                        "headline": raw_all.iloc[:, text_col_idx],
-                        "text": raw_all.iloc[:, text_col_idx],
-                    }
-                )
+                raw = process_uploaded_files(up)
             else:
-                raw = load_csv_dir(folder)
-                if raw.empty:
-                    st.error("No rows loaded from folder. Check path and CSV presence.")
-                    st.stop()
+                raw = process_folder(folder)
 
             # 2) Save normalized snapshot
             os.makedirs("data", exist_ok=True)

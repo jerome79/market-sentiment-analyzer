@@ -98,3 +98,5 @@ python scripts/benchmark.py --csv data/news_perf_test_100k.csv --model cardiffnl
 
 ### Report saved as a CSV
 python scripts/benchmark.py --csv data/news_perf_test_50k.csv --model ProsusAI/finbert --results out/bench.csv
+
+![CI](https://github.com/jerome79/market-sentiment-analyzer/actions/workflows/ci.yml/badge.svg)

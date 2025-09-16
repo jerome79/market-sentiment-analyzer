@@ -1,0 +1,8 @@
+out/
+.cache/
+__pycache__/
+.streamlit/
+.pytest_cache/
+data/*.parquet
+data/*.feather
+.env

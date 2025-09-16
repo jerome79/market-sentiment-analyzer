@@ -75,7 +75,8 @@ date,ticker,headline,text
 ```
 ### Docker quickstart
 ```bash
-docker compose up --build
+docker compose build --no-cache
+docker compose up
 # open http://localhost:8501
 ```
 

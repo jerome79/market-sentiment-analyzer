@@ -16,6 +16,14 @@ if str(ROOT) not in sys.path:
 
 from market_sentiment_analyzer.ingest import load_csv_dir, normalize_and_save  # resolves paths internally
 
+try:
+    import torch
+
+    cores = int(os.environ.get("OMP_NUM_THREADS", os.cpu_count() or 1))
+    torch.set_num_threads(cores)  # intra-op
+    torch.set_num_interop_threads(max(1, cores // 2))  # inter-op
+except Exception:
+    pass
 # -------------------- App config --------------------
 load_dotenv()
 st.set_page_config(page_title="Market Sentiment Analyzer", layout="wide")

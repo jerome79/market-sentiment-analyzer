@@ -2,9 +2,16 @@ version: "3.9"
 services:
   sentiment:
     build: .
-    ports:
-      - "8501:8501"
+    ports: ["8501:8501"]
+    volumes: ["./:/app", "hf_cache:/root/.cache/huggingface"]  # persist models
     environment:
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./:/app
+      - OMP_NUM_THREADS=6          # tune to your CPU
+      - MKL_NUM_THREADS=6
+      - TOKENIZERS_PARALLELISM=true
+    cpus: 6                         # give it real cores
+    mem_limit: 8g                   # give it RAM
+    command: streamlit run ui_streamlit.py --server.port=8501 --server.headless=true
+
+volumes:
+  hf_cache:

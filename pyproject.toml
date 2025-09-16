@@ -5,7 +5,7 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "PIE", "C4", "ARG", "RUF"]
 ignore = [
-  "E203",  # keep for Black compatibility on slicing
+  "E203", "E402" # keep for Black compatibility on slicing
 ]
 
 [tool.ruff.lint.isort]

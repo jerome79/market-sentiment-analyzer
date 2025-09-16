@@ -1,5 +1,11 @@
+import sys
+from pathlib import Path
+
 import pandas as pd
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 from market_sentiment_analyzer.ui_streamlit import load_labeled_parquet, trend_market, trend_ticker
 
 
